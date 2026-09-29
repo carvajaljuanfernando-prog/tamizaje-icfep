@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Tamizaje ICFEp en obesidad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: clinical intake tool — form column + sticky live-score panel; list view of preselected participants */
+:root{
+  --bg:#F2F5F6; --surface:#FFFFFF; --sunk:#E8EEF0; --ink:#15232A; --muted:#58696F; --line:#D5DEE1;
+  --accent:#0E6A76; --accent-ink:#FFFFFF; --accent-soft:#DCEFF1;
+  --alta:#B42318; --alta-soft:#FBE4E1; --inter:#A55408; --inter-soft:#FCEBD5; --baja:#2A7A4B; --baja-soft:#DDF1E5;
+  --fer:#5B4BA8; --fer-soft:#E8E4F7;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Public Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E161A; --surface:#162127; --sunk:#1D2A31; --ink:#E4ECEF; --muted:#94A5AC; --line:#2A3A42;
+  --accent:#52B8C5; --accent-ink:#06262B; --accent-soft:#16343A;
+  --alta:#F2786D; --alta-soft:#3A1C1A; --inter:#F0A94A; --inter-soft:#3A2A14; --baja:#63C58F; --baja-soft:#15302A;
+  --fer:#A99CF0; --fer-soft:#262244; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E161A; --surface:#162127; --sunk:#1D2A31; --ink:#E4ECEF; --muted:#94A5AC; --line:#2A3A42;
+  --accent:#52B8C5; --accent-ink:#06262B; --accent-soft:#16343A;
+  --alta:#F2786D; --alta-soft:#3A1C1A; --inter:#F0A94A; --inter-soft:#3A2A14; --baja:#63C58F; --baja-soft:#15302A;
+  --fer:#A99CF0; --fer-soft:#262244; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0 120px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.top .wrap{padding-block:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px}
+.brand{display:flex;flex-direction:column;min-width:0;margin-right:auto}
+.brand h1{font:700 1.3rem/1.15 var(--f-display);margin:0;text-wrap:balance}
+.brand span{color:var(--muted);font-size:.82rem}
+nav.tabs{display:flex;gap:4px;background:var(--sunk);padding:4px;border-radius:999px}
+nav.tabs button{border:0;background:transparent;color:var(--muted);font:600 .88rem var(--f-body);padding:7px 14px;border-radius:999px;cursor:pointer}
+nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgb(0 0 0 / .12)}
+nav.tabs .count{font-family:var(--f-mono);font-size:.78rem;margin-left:4px;color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,label.opt:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+
+/* form view */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:28px;align-items:start;padding-top:24px}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+section.blk{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 20px 22px;display:grid;gap:18px}
+.blocks{display:grid;gap:18px}
+.blk-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.blk-h h2{font:700 1.08rem/1.2 var(--f-display);margin:0}
+.blk-h .step{font:600 .72rem var(--f-mono);color:var(--accent);letter-spacing:.06em}
+.blk-h p{margin:0;color:var(--muted);font-size:.84rem;flex-basis:100%}
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px 18px}
+.f{display:grid;gap:6px;min-width:0}
+.f.wide{grid-column:1/-1}
+.f > .lbl{font-weight:600;font-size:.9rem}
+.f > .hint{color:var(--muted);font-size:.8rem;margin-top:-3px}
+.req{color:var(--alta)}
+input[type=text],input[type=number],input[type=tel],select{width:100%;font:500 .95rem var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+.unitbox{position:relative}
+.unitbox input{padding-right:64px;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.unitbox em{position:absolute;right:10px;top:50%;transform:translateY(-50%);font:500 .78rem var(--f-mono);color:var(--muted);font-style:normal;pointer-events:none}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+label.opt{position:relative;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 12px;font-size:.88rem;cursor:pointer;user-select:none}
+label.opt input{position:absolute;opacity:0;pointer-events:none}
+label.opt:has(input:checked){background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.seg.col{flex-direction:column;align-items:stretch}
+.seg.col label.opt{justify-content:space-between}
+.seg.col label.opt small{font-family:var(--f-mono);font-size:.72rem;opacity:.8}
+.q{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.q:first-child{border-top:0;padding-top:0}
+.q .qt{font-size:.93rem}
+.q .qt small{display:block;color:var(--muted);font-size:.78rem}
+@media (max-width:520px){.q{grid-template-columns:minmax(0,1fr)}}
+.qlist{display:grid}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:.88rem;background:var(--sunk);border-radius:8px;padding:12px}
+.check input{margin-top:3px;width:18px;height:18px;accent-color:var(--accent);flex:none}
+.calc{font:600 1.05rem var(--f-mono);font-variant-numeric:tabular-nums;padding:8px 0}
+.calc small{font:500 .78rem var(--f-body);color:var(--muted);margin-left:6px}
+
+/* live panel */
+aside.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 86px);display:grid;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:12px}
+.pill{display:inline-flex;align-items:center;gap:8px;font:700 .8rem var(--f-body);letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:5px 12px;width:max-content}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.c-alta{color:var(--alta);background:var(--alta-soft)}
+.c-intermedia{color:var(--inter);background:var(--inter-soft)}
+.c-baja{color:var(--baja);background:var(--baja-soft)}
+.c-icfer{color:var(--fer);background:var(--fer-soft)}
+.c-pend{color:var(--muted);background:var(--sunk)}
+.verdict{font:700 1.15rem/1.25 var(--f-display);margin:0;text-wrap:balance}
+.action{font-size:.88rem;color:var(--muted);margin:0}
+.scores{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sc{background:var(--sunk);border-radius:8px;padding:10px 12px}
+.sc b{display:block;font:600 1.5rem/1.1 var(--f-mono);font-variant-numeric:tabular-nums}
+.sc span{font-size:.76rem;color:var(--muted)}
+.h2{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.h2 div{border:1px solid var(--line);border-radius:6px;text-align:center;padding:6px 2px;font:600 .8rem var(--f-mono)}
+.h2 div small{display:block;font:500 .64rem var(--f-body);color:var(--muted)}
+.h2 div.on{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.h2 div.na{opacity:.5;border-style:dashed}
+.reasons{margin:0;padding-left:18px;font-size:.84rem;display:grid;gap:3px}
+.reasons li.major{font-weight:600}
+.alarm{background:var(--alta-soft);color:var(--alta);border-radius:8px;padding:10px 12px;font-size:.85rem;font-weight:600}
+.alarm ul{margin:4px 0 0;padding-left:18px;font-weight:500}
+.btn{border:0;border-radius:8px;padding:11px 16px;font:700 .92rem var(--f-body);cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.msg{font-size:.84rem;color:var(--muted);min-height:1.2em}
+.msg.err{color:var(--alta)}
+.msg.ok{color:var(--baja)}
+.summary{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:500 .78rem/1.5 var(--f-mono);background:var(--sunk);border-radius:8px;padding:10px 12px;max-height:220px;overflow:auto}
+.mobilebar{display:none}
+@media (max-width:900px){
+  aside.panel{position:static}
+  .mobilebar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));gap:10px;align-items:center}
+  .mobilebar .mb-s{margin-right:auto;font:600 .85rem var(--f-mono)}
+}
+
+/* list view */
+.listhead{display:flex;flex-wrap:wrap;gap:14px;align-items:end;padding-top:24px}
+.listhead h2{font:700 1.3rem var(--f-display);margin:0;margin-right:auto}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px}
+.tile{border-radius:var(--r);padding:14px 16px;border:1px solid var(--line);background:var(--surface);display:grid;gap:2px;cursor:pointer;text-align:left;color:var(--ink);font:inherit}
+.tile[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:-1px}
+.tile b{font:600 1.7rem/1.1 var(--f-mono);font-variant-numeric:tabular-nums}
+.tile span{font-size:.8rem;color:var(--muted)}
+.tile i{font-style:normal;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.filters{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 12px}
+.filters input{max-width:320px}
+.plist{display:grid;gap:10px}
+details.pt{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);border-left:5px solid var(--line)}
+details.pt.k-alta{border-left-color:var(--alta)} details.pt.k-intermedia{border-left-color:var(--inter)} details.pt.k-baja{border-left-color:var(--baja)} details.pt.k-icfer{border-left-color:var(--fer)}
+details.pt summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;padding:14px 16px;align-items:center}
+details.pt summary::-webkit-details-marker{display:none}
+.pt-name{font-weight:700;min-width:0;overflow-wrap:anywhere}
+.pt-meta{font-size:.8rem;color:var(--muted);font-family:var(--f-mono);grid-column:1}
+.pt-right{grid-row:1/3;grid-column:2;display:flex;flex-direction:column;align-items:end;gap:6px}
+.stat{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:600 .7rem var(--f-mono);border-radius:4px;padding:2px 6px;background:var(--sunk);color:var(--muted)}
+.chip.done{background:var(--accent-soft);color:var(--accent)}
+.pt-body{padding:0 16px 16px;display:grid;gap:16px;border-top:1px solid var(--line);padding-top:14px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.two h3{font:700 .8rem var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.res{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.res .f .lbl{font-size:.8rem}
+.fullh2{background:var(--sunk);border-radius:8px;padding:10px 12px;font-size:.86rem}
+.fullh2 b{font-family:var(--f-mono)}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);padding:28px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font:700 1.05rem var(--f-display);margin-bottom:4px}
+
+/* criteria view */
+.crit{padding-top:24px;display:grid;gap:18px;max-width:880px}
+.crit h2{font:700 1.3rem var(--f-display);margin:0}
+.crit h3{font:700 1rem var(--f-display);margin:0 0 6px}
+.crit p,.crit li{max-width:68ch;font-size:.93rem}
+.tblwrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap}
+@media (prefers-reduced-motion:no-preference){.pill,.sc b{transition:all .2s ease}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand"><h1>Tamizaje ICFEp en obesidad</h1><span>Preselección para electrocardiograma y ecocardiograma · no guarda datos</span></div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-view="form" id="tab-form">Encuesta</button>
+    <button role="tab" aria-selected="false" data-view="crit" id="tab-crit">Criterios</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <div id="view-form">
+    <div class="grid">
+      <form id="survey" class="blocks" novalidate></form>
+      <aside class="panel" id="panel"></aside>
+    </div>
+  </div>
+  <div id="view-crit" hidden></div>
+</main>
+<div class="mobilebar" id="mobilebar"><span class="mb-s" id="mbScore"></span><button class="btn" type="button" id="mbSave">Copiar resumen</button></div>
+
+<script>
+/* ---------- esquema de la encuesta ---------- */
+const YN=[['si','Sí'],['no','No']];
+const YNV=[['si','Sí'],['no','No'],['nv','No valorable']];
+const SECTIONS=[
+ {id:'id',title:'Datos generales',note:'La herramienta no guarda ni envía nada. Al cerrar o empezar una nueva encuesta, los datos desaparecen.',fields:[
+  {k:'codigo',t:'text',l:'Código o iniciales',hint:'Opcional. Solo para identificar el resumen; no use nombre completo ni documento.'},
+  {k:'edad',t:'num',l:'Edad',u:'años',req:1,min:18,max:110},
+  {k:'sexo',t:'seg',l:'Sexo',o:[['F','Femenino'],['M','Masculino']]},
+  {k:'sede',t:'text',l:'Sede o jornada'},
+  {k:'encuestador',t:'text',l:'Encuestador'}
+ ]},
+ {id:'vitales',title:'Medidas y signos vitales',note:'Tomar la presión sentado, tras 5 minutos de reposo, con brazalete de talla adecuada para obesidad.',fields:[
+  {k:'peso',t:'num',l:'Peso',u:'kg',req:1,step:.1,min:30,max:300},
+  {k:'talla',t:'num',l:'Talla',u:'cm',req:1,min:120,max:220},
+  {k:'imc',t:'calc',l:'Índice de masa corporal'},
+  {k:'cintura',t:'num',l:'Perímetro abdominal',u:'cm',min:50,max:250},
+  {k:'pas',t:'num',l:'PA sistólica',u:'mmHg',min:60,max:280},
+  {k:'pad',t:'num',l:'PA diastólica',u:'mmHg',min:30,max:180},
+  {k:'fc',t:'num',l:'Frecuencia cardiaca',u:'lpm',min:20,max:220},
+  {k:'spo2',t:'num',l:'Saturación de O₂',u:'%',min:50,max:100},
+  {k:'pulsoIrreg',t:'seg',l:'Pulso irregular a la palpación',o:YN}
+ ]},
+ {id:'sintomas',title:'Síntomas',note:'Leer las preguntas tal como están escritas.',q:[
+  {k:'disnea',t:'col',l:'¿Le falta el aire? ¿Con qué actividad?',o:[['1','No me falta el aire con la actividad diaria','NYHA I'],['2','Al subir 2 pisos, una loma o caminar rápido','NYHA II'],['3','Al caminar una cuadra, bañarme o vestirme','NYHA III'],['4','Estando en reposo','NYHA IV']]},
+  {k:'ortopnea',l:'¿Necesita dormir con 2 o más almohadas, o sentado, porque se ahoga acostado?',o:YN},
+  {k:'dpn',l:'¿Se ha despertado de noche con ahogo y ha tenido que sentarse o levantarse para respirar?',o:YN},
+  {k:'bendopnea',l:'¿Le falta el aire al agacharse, por ejemplo para amarrarse los zapatos?',o:YN},
+  {k:'edemaRef',l:'¿Se le hinchan los pies o los tobillos al final del día?',o:YN},
+  {k:'fatiga',l:'¿Se cansa más rápido que antes con actividades que hacía sin problema?',o:YN},
+  {k:'pesoRapido',l:'¿Ha subido más de 2 kg en una semana sin explicación?',o:YN},
+  {k:'palpitaciones',l:'¿Siente el corazón acelerado o irregular sin motivo?',o:YN},
+  {k:'angina',l:'¿Siente dolor u opresión en el pecho al hacer esfuerzo?',o:YN}
+ ]},
+ {id:'examen',title:'Examen físico',note:'Lo diligencia personal de salud. En obesidad la yugular puede no ser valorable; márquelo así.',q:[
+  {k:'edemaFovea',l:'Edema con fóvea en miembros inferiores',o:[['0','No'],['1','Tobillos'],['2','Hasta rodilla o más']]},
+  {k:'iy',l:'Ingurgitación yugular a 45°',o:YNV},
+  {k:'crepitos',l:'Estertores en bases pulmonares',o:YNV}
+ ]},
+ {id:'antecedentes',title:'Antecedentes',q:[
+  {k:'hta',l:'¿Le han diagnosticado presión alta?',o:YN},
+  {k:'nAntiHTA',t:'num',l:'¿Cuántos medicamentos distintos toma para la presión?',hint:'Cuente diuréticos si se los formularon para la presión.',u:'n.º',min:0,max:8},
+  {k:'fa',l:'¿Le han diagnosticado fibrilación auricular o una arritmia?',o:YN},
+  {k:'dm',l:'¿Tiene diabetes?',o:YN},
+  {k:'erc',l:'¿Le han dicho que sus riñones funcionan mal?',o:YN},
+  {k:'sahos',l:'¿Tiene apnea del sueño o ronca con pausas en la respiración?',o:YN},
+  {k:'coronaria',l:'¿Ha tenido infarto, stent o cirugía de corazón?',o:YN},
+  {k:'hospIC',l:'¿Ha estado hospitalizado o en urgencias por falla cardiaca, “agua en los pulmones” o “corazón crecido”?',o:YN},
+  {k:'dxIC',t:'col',l:'¿Tiene diagnóstico de insuficiencia cardiaca?',o:[['no','No'],['si','Sí, no sabe la fracción de eyección',''],['fep','Sí, con FEVI ≥ 50 %','ICFEp'],['fer','Sí, con FEVI < 50 %','ICFEr/ICFEleve']]}
+ ]},
+ {id:'meds',title:'Medicamentos',note:'Pida ver la fórmula o las cajas. Pregunte por nombre comercial si no reconoce el genérico.',q:[
+  {k:'diurAsa',l:'Diurético de asa',hint:'Furosemida (Lasix), torasemida, bumetanida',o:YN},
+  {k:'tiazida',l:'Diurético tiazídico',hint:'Hidroclorotiazida, clortalidona, indapamida (solos o combinados con losartán, etc.)',o:YN},
+  {k:'antiMR',l:'Antagonista mineralocorticoide',hint:'Espironolactona, eplerenona',o:YN},
+  {k:'motivoDiur',l:'¿Para qué le formularon el diurético?',show:a=>a.diurAsa==='si'||a.tiazida==='si'||a.antiMR==='si',o:[['presion','Para la presión'],['hinchazon','Por hinchazón o ahogo'],['nosabe','No sabe']]},
+  {k:'isglt2',l:'iSGLT2',hint:'Empagliflozina, dapagliflozina (Jardiance, Forxiga y combinados)',o:YN},
+  {k:'anticoag',l:'Anticoagulante',hint:'Warfarina, apixabán, rivaroxabán, dabigatrán, edoxabán',o:YN},
+  {k:'betabloq',l:'Betabloqueador',hint:'Metoprolol, carvedilol, bisoprolol, nebivolol',o:YN}
+ ]}
+];
+const ALLKEYS=[];SECTIONS.forEach(s=>(s.fields||s.q).forEach(f=>ALLKEYS.push(f.k)));
+
+/* ---------- cálculo ---------- */
+const num=v=>{const n=parseFloat(String(v??'').replace(',','.'));return isFinite(n)?n:null};
+function bmi(a){const p=num(a.peso),t=num(a.talla);return p&&t?p/((t/100)**2):null}
+
+function evaluate(a){
+  const R=[],M=[],AL=[];
+  const edad=num(a.edad),imc=bmi(a),nhta=num(a.nAntiHTA)??0,d=num(a.disnea)??0;
+  // H2FPEF clínico (sin eco)
+  const h2={H1:imc!=null&&imc>30?2:0,H2:(nhta>=2)?1:0,F:a.fa==='si'?3:0,E:edad!=null&&edad>60?1:0};
+  const h2c=h2.H1+h2.H2+h2.F+h2.E;
+  // síntomas y signos
+  let s=0;const pts=(p,txt)=>{s+=p;R.push(`${txt} (+${p})`)};
+  if(d===2)pts(1,'Disnea NYHA II');if(d===3)pts(2,'Disnea NYHA III');if(d===4)pts(3,'Disnea NYHA IV');
+  if(a.ortopnea==='si')pts(2,'Ortopnea');
+  if(a.dpn==='si')pts(2,'Disnea paroxística nocturna');
+  if(a.bendopnea==='si')pts(1,'Bendopnea');
+  const ef=num(a.edemaFovea)??0;const edema=Math.max(ef,a.edemaRef==='si'?1:0);
+  if(edema)pts(edema,ef?`Edema con fóvea ${ef===2?'hasta rodilla':'en tobillos'}`:'Edema referido');
+  if(a.iy==='si')pts(2,'Ingurgitación yugular');
+  if(a.crepitos==='si')pts(1,'Estertores basales');
+  if(a.pesoRapido==='si')pts(1,'Aumento rápido de peso');
+  if(a.fatiga==='si')pts(1,'Intolerancia al esfuerzo');
+  // antecedentes y medicamentos
+  let hx=0;const hp=(p,txt)=>{hx+=p;R.push(`${txt} (+${p})`)};
+  if(a.diurAsa==='si')hp(3,'Diurético de asa');
+  if(a.tiazida==='si')hp(1,'Tiazida');
+  if(a.antiMR==='si')hp(1,'Espironolactona/eplerenona');
+  if(a.motivoDiur==='hinchazon')hp(2,'Diurético formulado por hinchazón o ahogo');
+  if(a.hospIC==='si')hp(3,'Hospitalización o urgencias por IC');
+  if(a.dm==='si')hp(1,'Diabetes');
+  if(a.erc==='si')hp(1,'Enfermedad renal');
+  if(a.sahos==='si')hp(1,'Apnea del sueño');
+  if(a.coronaria==='si')hp(1,'Enfermedad coronaria');
+  const total=h2c+s+hx;
+  // criterios mayores
+  if(a.diurAsa==='si')M.push('Usa diurético de asa');
+  if(a.motivoDiur==='hinchazon')M.push('Diurético formulado por congestión');
+  if(a.hospIC==='si')M.push('Hospitalización previa por IC');
+  if(a.dxIC==='si'||a.dxIC==='fep')M.push('Diagnóstico previo de IC sin FEVI reducida');
+  if((a.ortopnea==='si'||a.dpn==='si')&&edema>0)M.push('Ortopnea o DPN con edema');
+  if(a.fa==='si'&&d>=2)M.push('Fibrilación auricular con disnea');
+  if(a.iy==='si'&&d>=2)M.push('Ingurgitación yugular con disnea');
+  // alarmas
+  const spo2=num(a.spo2),pas=num(a.pas),pad=num(a.pad),fc=num(a.fc);
+  if(spo2!=null&&spo2<90)AL.push(`SatO₂ ${spo2} %`);
+  if((pas!=null&&pas>=180)||(pad!=null&&pad>=110))AL.push(`PA ${pas??'–'}/${pad??'–'} mmHg`);
+  if(fc!=null&&(fc>=120||fc<45))AL.push(`FC ${fc} lpm`);
+  if(d===4)AL.push('Disnea en reposo');
+  const notes=[];
+  if(a.angina==='si')notes.push('Angina de esfuerzo: informar al médico que lea el ECG.');
+  if(a.pulsoIrreg==='si'&&a.fa!=='si')notes.push('Pulso irregular sin FA conocida: prioridad para ECG.');
+  // categoría
+  let cat;
+  if(a.dxIC==='fer')cat='icfer';
+  else if(M.length||(d>=2&&total>=8))cat='alta';
+  else if((d>=2&&total>=5)||h2c>=5||(d>=2&&h2c>=4)||(a.pulsoIrreg==='si'&&a.fa!=='si'))cat='intermedia';
+  else cat='baja';
+  const complete=!!(a.edad&&a.peso&&a.talla&&a.disnea);
+  return {h2,h2c,s,hx,total,cat,majors:M,reasons:R,alarms:AL,notes,imc:imc?Math.round(imc*10)/10:null,complete};
+}
+const CAT={
+ alta:{lbl:'Alta probabilidad',verdict:'Preseleccionado',act:'Programar ECG y ecocardiograma.'},
+ intermedia:{lbl:'Probabilidad intermedia',verdict:'Lista de espera',act:'Tomar ECG. Ecocardiograma si hay cupo, en orden de puntaje.'},
+ baja:{lbl:'Baja probabilidad',verdict:'No preseleccionado',act:'Educación en factores de riesgo y control con su médico.'},
+ icfer:{lbl:'IC con FEVI reducida',verdict:'Fuera del objetivo ICFEp',act:'Verificar que tenga seguimiento en programa de IC.'},
+ pend:{lbl:'Incompleto',verdict:'Faltan datos',act:'Complete edad, peso, talla y la pregunta de disnea.'}
+};
+
+/* ---------- estado ---------- */
+let answers={};
+/* ---------- render formulario ---------- */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function optHTML(f){return `<div class="seg${f.t==='col'?' col':''}" role="radiogroup" aria-label="${esc(f.l)}">`+f.o.map(([v,t,sub])=>`<label class="opt"><input type="radio" name="${f.k}" id="${f.k}-${v}" value="${v}"${answers[f.k]===v?' checked':''}><span>${esc(t)}</span>${sub?`<small>${esc(sub)}</small>`:''}</label>`).join('')+`</div>`}
+function numHTML(f){return `<div class="unitbox"><input type="number" inputmode="decimal" id="${f.k}" name="${f.k}" ${f.step?`step="${f.step}"`:''} ${f.min!=null?`min="${f.min}"`:''} ${f.max!=null?`max="${f.max}"`:''} value="${esc(answers[f.k]??'')}"><em>${f.u||''}</em></div>`}
+function fieldHTML(f){
+  const lab=`<span class="lbl">${esc(f.l)}${f.req?' <span class="req">*</span>':''}</span>`;
+  if(f.t==='check')return `<div class="f wide"><label class="check"><input type="checkbox" id="${f.k}" name="${f.k}"${answers[f.k]?' checked':''}><span>${esc(f.l)} <span class="req">*</span></span></label></div>`;
+  if(f.t==='calc')return `<div class="f"><span class="lbl">${esc(f.l)}</span><div class="calc" id="imcOut">–</div></div>`;
+  if(f.t==='seg'||f.t==='col')return `<div class="f${f.wide?' wide':''}">${lab}${optHTML(f)}</div>`;
+  if(f.t==='num')return `<label class="f" for="${f.k}">${lab}${numHTML(f)}</label>`;
+  return `<label class="f" for="${f.k}">${lab}${f.hint?`<span class="hint">${esc(f.hint)}</span>`:''}<input type="${f.t==='tel'?'tel':'text'}" id="${f.k}" name="${f.k}" value="${esc(answers[f.k]??'')}" autocomplete="off"></label>`;
+}
+function qHTML(f){
+  const body=f.t==='num'?`<div style="width:140px">${numHTML(f)}</div>`:optHTML(f);
+  const full=f.t==='col';
+  return `<div class="q" data-q="${f.k}"${f.show&&!f.show(answers)?' hidden':''}${full?' style="grid-template-columns:minmax(0,1fr)"':''}><div class="qt">${esc(f.l)}${f.hint?`<small>${esc(f.hint)}</small>`:''}</div>${body}</div>`;
+}
+function renderForm(){
+  const f=document.getElementById('survey');
+  f.innerHTML=SECTIONS.map((s,i)=>`<section class="blk" id="sec-${s.id}"><div class="blk-h"><span class="step">${String(i+1).padStart(2,'0')} / ${SECTIONS.length}</span><h2>${s.title}</h2>${s.note?`<p>${s.note}</p>`:''}</div>${s.fields?`<div class="fields">${s.fields.map(fieldHTML).join('')}</div>`:`<div class="qlist">${s.q.map(qHTML).join('')}</div>`}</section>`).join('')
+  +`<div class="row"><button class="btn" type="submit">Copiar resumen</button><button class="btn ghost" type="button" id="resetBtn">Siguiente participante</button><span class="msg" id="msgForm"></span></div>`;
+  update();
+}
+function readForm(){
+  const fm=document.getElementById('survey');
+  ALLKEYS.forEach(k=>{
+    const els=fm.querySelectorAll(`[name="${k}"]`);if(!els.length)return;
+    const e=els[0];
+    if(e.type==='radio'){const c=fm.querySelector(`[name="${k}"]:checked`);answers[k]=c?c.value:undefined}
+    else if(e.type==='checkbox')answers[k]=e.checked;
+    else answers[k]=e.value.trim();
+  });
+}
+function update(){
+  const r=evaluate(answers);
+  const imcEl=document.getElementById('imcOut');
+  if(imcEl)imcEl.innerHTML=r.imc?`${r.imc.toFixed(1)}<small>kg/m² · ${r.imc>=40?'obesidad grado III':r.imc>=35?'obesidad grado II':r.imc>=30?'obesidad grado I':r.imc>=25?'sobrepeso':'no obesidad'}</small>`:'–';
+  SECTIONS.forEach(s=>(s.q||[]).forEach(f=>{if(f.show){const el=document.querySelector(`[data-q="${f.k}"]`);if(el)el.hidden=!f.show(answers)}}));
+  const key=r.complete?r.cat:'pend',c=CAT[key];
+  const h2cells=[['H',r.h2.H1,'IMC>30','2'],['H',r.h2.H2,'≥2 antiHTA','1'],['F',r.h2.F,'FA','3'],['P',null,'PSAP>35','eco'],['E',r.h2.E,'>60 años','1'],['F',null,"E/e'>9",'eco']];
+  document.getElementById('panel').innerHTML=`
+   ${r.alarms.length?`<div class="alarm">Valoración médica antes de continuar<ul>${r.alarms.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
+   <div class="card">
+    <span class="pill c-${key}">${c.lbl}</span>
+    <p class="verdict">${c.verdict}</p><p class="action">${c.act}</p>
+    <div class="scores"><div class="sc"><b>${r.total}</b><span>Puntaje de tamizaje</span></div><div class="sc"><b>${r.h2c}<small style="font-size:.9rem;color:var(--muted)">/7</small></b><span>H₂FPEF clínico</span></div></div>
+    <div class="h2" aria-label="Componentes H2FPEF">${h2cells.map(([l,v,t,p])=>`<div class="${v==null?'na':v?'on':''}" title="${t}: ${p} pts">${l}<small>${t}</small></div>`).join('')}</div>
+   </div>
+   <div class="card">
+    <strong style="font-size:.85rem">Qué está sumando</strong>
+    ${r.majors.length||r.reasons.length?`<ul class="reasons">${r.majors.map(x=>`<li class="major">Criterio mayor: ${esc(x)}</li>`).join('')}${r.reasons.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<span class="action">Aún no hay hallazgos positivos.</span>`}
+    ${r.notes.map(n=>`<span class="action">• ${esc(n)}</span>`).join('')}
+   </div>
+   <div class="card"><strong style="font-size:.85rem">Resumen para la lista de ECG y eco</strong><pre class="summary" id="summaryText">${esc(summary(r))}</pre><div class="row"><button class="btn" type="button" id="panelSave">Copiar resumen</button><button class="btn ghost" type="button" id="panelReset">Siguiente participante</button></div><span class="msg" id="msgPanel"></span></div>`;
+  document.getElementById('mbScore').innerHTML=`<span class="pill c-${key}" style="font-size:.7rem">${c.lbl}</span> ${r.total} pts`;
+  document.getElementById('panelSave').onclick=save;
+  document.getElementById('panelReset').onclick=resetAll;
+}
+function setMsg(t,cls){['msgForm','msgPanel'].forEach(id=>{const e=document.getElementById(id);if(e){e.textContent=t;e.className='msg '+(cls||'')}})}
+
+/* ---------- resumen y copia ---------- */
+function summary(r){
+  const a=answers,key=r.complete?r.cat:'pend',c=CAT[key],d=new Date();
+  const L=[`Tamizaje ICFEp · ${a.codigo||'sin código'} · ${d.toLocaleDateString('es-CO')}`,
+   `${a.edad||'–'} años${a.sexo?' · '+(a.sexo==='F'?'F':'M'):''} · IMC ${r.imc??'–'} · PA ${a.pas||'–'}/${a.pad||'–'} · FC ${a.fc||'–'} · SatO2 ${a.spo2||'–'}%`,
+   `${c.lbl.toUpperCase()}: ${c.act}`,
+   `Puntaje ${r.total} · H2FPEF clínico ${r.h2c}/7`];
+  if(r.majors.length)L.push('Criterios mayores: '+r.majors.join('; '));
+  if(r.reasons.length)L.push('Hallazgos: '+r.reasons.map(x=>x.replace(/ \(\+\d+\)/,'')).join('; '));
+  if(r.alarms.length)L.push('ALARMA: '+r.alarms.join('; ')+' → valoración médica hoy');
+  r.notes.forEach(n=>L.push(n));
+  if(a.encuestador||a.sede)L.push([a.encuestador,a.sede].filter(Boolean).join(' · '));
+  return L.join('\n');
+}
+function setMsg(t,cls){['msgForm','msgPanel'].forEach(id=>{const e=document.getElementById(id);if(e){e.textContent=t;e.className='msg '+(cls||'')}})}
+async function save(){
+  readForm();update();
+  const r=evaluate(answers);
+  if(!r.complete){setMsg('Complete edad, peso, talla y la pregunta de disnea antes de copiar.','err');return}
+  const txt=summary(r);
+  try{await navigator.clipboard.writeText(txt);setMsg('Resumen copiado. Péguelo en la lista o en el chat del equipo.','ok')}
+  catch(e){const pre=document.getElementById('summaryText');const sel=window.getSelection(),rg=document.createRange();rg.selectNodeContents(pre);sel.removeAllRanges();sel.addRange(rg);setMsg('Resumen seleccionado: cópielo con el menú del teléfono.','')}
+}
+function resetAll(){answers={};renderForm();setMsg('');window.scrollTo({top:0})}
+/* ---------- criterios ---------- */
+function renderCrit(){
+  document.getElementById('view-crit').innerHTML=`<div class="crit">
+  <h2>Cómo se clasifica a cada participante</h2>
+  <p>La encuesta combina el componente clínico del puntaje H₂FPEF (Reddy, <i>Circulation</i> 2018) con síntomas y signos de congestión, antecedentes y uso de diuréticos. Los componentes que requieren ecocardiograma (PSAP y E/e') se suman después del estudio.</p>
+  <div class="card"><h3>Categorías</h3><div class="tblwrap"><table><thead><tr><th>Categoría</th><th>Regla</th><th>Conducta</th></tr></thead><tbody>
+   <tr><td><span class="pill c-alta" style="font-size:.66rem">Alta</span></td><td>Cualquier criterio mayor, o disnea NYHA ≥ II con puntaje total ≥ 8</td><td>ECG y ecocardiograma</td></tr>
+   <tr><td><span class="pill c-intermedia" style="font-size:.66rem">Intermedia</span></td><td>Disnea NYHA ≥ II con puntaje 5–7, o disnea con H₂FPEF clínico ≥ 4, o H₂FPEF clínico ≥ 5, o pulso irregular sin FA conocida</td><td>ECG; eco en orden de puntaje según cupos</td></tr>
+   <tr><td><span class="pill c-baja" style="font-size:.66rem">Baja</span></td><td>Todo lo demás</td><td>Educación y control</td></tr>
+   <tr><td><span class="pill c-icfer" style="font-size:.66rem">FEVI reducida</span></td><td>IC conocida con FEVI &lt; 50 %</td><td>Fuera del objetivo; verificar seguimiento</td></tr>
+  </tbody></table></div></div>
+  <div class="card"><h3>Criterios mayores</h3><ul>
+   <li>Uso actual de diurético de asa (furosemida, torasemida, bumetanida)</li><li>Cualquier diurético formulado por hinchazón o ahogo</li><li>Hospitalización o urgencias previas por IC</li><li>Diagnóstico previo de IC sin FEVI reducida</li><li>Ortopnea o disnea paroxística nocturna con edema</li><li>Fibrilación auricular con disnea NYHA ≥ II</li><li>Ingurgitación yugular con disnea NYHA ≥ II</li></ul></div>
+  <div class="card"><h3>Puntaje de tamizaje</h3><div class="tblwrap"><table><thead><tr><th>Componente</th><th>Hallazgo</th><th style="text-align:right">Puntos</th></tr></thead><tbody>
+   <tr><td rowspan="4">H₂FPEF clínico</td><td>IMC &gt; 30 kg/m²</td><td class="n">2</td></tr><tr><td>≥ 2 antihipertensivos</td><td class="n">1</td></tr><tr><td>Fibrilación auricular</td><td class="n">3</td></tr><tr><td>Edad &gt; 60 años</td><td class="n">1</td></tr>
+   <tr><td rowspan="9">Síntomas y signos</td><td>Disnea NYHA II / III / IV</td><td class="n">1 / 2 / 3</td></tr><tr><td>Ortopnea</td><td class="n">2</td></tr><tr><td>Disnea paroxística nocturna</td><td class="n">2</td></tr><tr><td>Bendopnea</td><td class="n">1</td></tr><tr><td>Edema referido o en tobillos / hasta rodilla</td><td class="n">1 / 2</td></tr><tr><td>Ingurgitación yugular</td><td class="n">2</td></tr><tr><td>Estertores basales</td><td class="n">1</td></tr><tr><td>Aumento de peso &gt; 2 kg/semana</td><td class="n">1</td></tr><tr><td>Intolerancia al esfuerzo</td><td class="n">1</td></tr>
+   <tr><td rowspan="9">Antecedentes y medicamentos</td><td>Diurético de asa</td><td class="n">3</td></tr><tr><td>Tiazida</td><td class="n">1</td></tr><tr><td>Espironolactona / eplerenona</td><td class="n">1</td></tr><tr><td>Diurético formulado por congestión</td><td class="n">2</td></tr><tr><td>Hospitalización por IC</td><td class="n">3</td></tr><tr><td>Diabetes</td><td class="n">1</td></tr><tr><td>Enfermedad renal</td><td class="n">1</td></tr><tr><td>Apnea del sueño</td><td class="n">1</td></tr><tr><td>Enfermedad coronaria</td><td class="n">1</td></tr>
+  </tbody></table></div></div>
+  <div class="card"><h3>Alarmas que requieren valoración médica el mismo día</h3><p>SatO₂ &lt; 90 %, PA ≥ 180/110 mmHg, FC ≥ 120 o &lt; 45 lpm, disnea en reposo. No suspenden el tamizaje, pero el participante debe ser valorado antes de irse.</p></div>
+  <div class="card"><h3>H₂FPEF completo tras el ecocardiograma</h3><p>Se agregan PSAP &gt; 35 mmHg (1 punto) y E/e' promedio &gt; 9 (1 punto); una FA detectada en el ECG del tamizaje suma los 3 puntos de F. Bandas: 0–1 baja, 2–5 intermedia, 6–9 alta probabilidad de ICFEp. En obesidad el NT-proBNP suele estar falsamente bajo; un valor normal no excluye ICFEp.</p></div>
+  <p class="action">Los pesos del puntaje de tamizaje y los cortes de categoría son una regla operativa para priorizar cupos de ecocardiograma, no un score validado. Conviene revisar su rendimiento con los resultados de eco al terminar la jornada.</p>
+ </div>`;
+}
+
+/* ---------- navegación y eventos ---------- */
+function show(v){['form','crit'].forEach(x=>{document.getElementById('view-'+x).hidden=x!==v;document.getElementById('tab-'+x).setAttribute('aria-selected',x===v)});
+  document.getElementById('mobilebar').style.visibility=v==='form'?'visible':'hidden';
+  try{history.replaceState(null,'','#'+v)}catch(e){}}
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.view));
+const fm=document.getElementById('survey');
+fm.addEventListener('input',()=>{readForm();update()});
+fm.addEventListener('change',()=>{readForm();update()});
+fm.addEventListener('submit',e=>{e.preventDefault();save()});
+fm.addEventListener('click',e=>{if(e.target.id==='resetBtn')resetAll()});
+document.getElementById('mbSave').onclick=save;
+renderForm();renderCrit();
+if((location.hash||'')==='#crit')show('crit');
+
+</script>
+</body>
+</html>
